@@ -1,11 +1,14 @@
 ﻿using Ecommerce_Backend.Models;
-using System.Threading.Tasks;
+using Ecommerce_Backend.Models;
 
-public interface IAddressRepository
+namespace Ecommerce_Backend.Repositories
 {
-    Task AddAsync(Address address);
-    Task<Address> GetByIdAsync(int addressId);
-    void Update(Address address);
-    void Delete(Address address);
-    Task SaveChangesAsync();
+    public interface IAddressRepository
+    {
+        Task<IEnumerable<Address>> GetAllAsync();
+        Task<Address?> GetByIdAsync(int id);
+        Task<Address> AddAsync(Address address);
+        Task<Address?> UpdateAsync(Address address);
+        Task<bool> DeleteAsync(int id);
+    }
 }

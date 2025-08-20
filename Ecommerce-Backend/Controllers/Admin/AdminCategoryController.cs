@@ -6,7 +6,7 @@ using Ecommerce_Backend.DTOs.Admin;
 using Ecommerce_Backend.DTOs.admin;
 using Ecommerce_Backend.Interfaces.Admin;
 
-namespace Ecommerce_Backend.Controllers.Admin
+namespace EcommerceAPI.Controllers.Admin
 {
     [ApiController]
     [Route("api/admin/[controller]")]

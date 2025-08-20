@@ -1,51 +1,21 @@
 ﻿using Ecommerce_Backend.Models;
-using Ecommerce_Backend.Repositories; // assuming you have IAddressRepository
-using System.Threading.Tasks;
+using Ecommerce_Backend.Repositories;
 
-public class AddressService : IAddressService
+namespace Ecommerce_Backend.Services
 {
-    private readonly IAddressRepository _addressRepository;
-
-    public AddressService(IAddressRepository addressRepository)
+    public class AddressService : IAddressService
     {
-        _addressRepository = addressRepository;
-    }
+        private readonly IAddressRepository _repository;
 
-    public async Task<int> AddAddressAsync(Address address)
-    {
-        await _addressRepository.AddAsync(address);
-        await _addressRepository.SaveChangesAsync();
-        return address.Id;
-    }
+        public AddressService(IAddressRepository repository)
+        {
+            _repository = repository;
+        }
 
-    public async Task<Address> GetAddressByIdAsync(int addressId)
-    {
-        return await _addressRepository.GetByIdAsync(addressId);
-    }
-
-    public async Task<bool> UpdateAddressAsync(Address address)
-    {
-        var existing = await _addressRepository.GetByIdAsync(address.Id);
-        if (existing == null) return false;
-
-        existing.FullName = address.FullName;
-        existing.Email = address.Email;
-        existing.PhoneNumber = address.PhoneNumber;
-        existing.AddressLine = address.AddressLine;
-        existing.Pincode = address.Pincode;
-
-        _addressRepository.Update(existing);
-        await _addressRepository.SaveChangesAsync();
-        return true;
-    }
-
-    public async Task<bool> DeleteAddressAsync(int addressId)
-    {
-        var address = await _addressRepository.GetByIdAsync(addressId);
-        if (address == null) return false;
-
-        _addressRepository.Delete(address);
-        await _addressRepository.SaveChangesAsync();
-        return true;
+        public Task<IEnumerable<Address>> GetAllAsync() => _repository.GetAllAsync();
+        public Task<Address?> GetByIdAsync(int id) => _repository.GetByIdAsync(id);
+        public Task<Address> AddAsync(Address address) => _repository.AddAsync(address);
+        public Task<Address?> UpdateAsync(Address address) => _repository.UpdateAsync(address);
+        public Task<bool> DeleteAsync(int id) => _repository.DeleteAsync(id);
     }
 }

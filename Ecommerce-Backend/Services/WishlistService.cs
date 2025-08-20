@@ -1,6 +1,7 @@
 ﻿using Ecommerce_Backend.DTOs;
 using Ecommerce_Backend.Models;
 using Ecommerce_Backend.Repositories;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -24,20 +25,22 @@ namespace Ecommerce_Backend.Services
             {
                 Id = w.Id,
                 ProductId = w.ProductId,
-                ProductName = w.Product.Name,
-                ProductImageUrl = w.Product.ImageUrl,
-                ProductPrice = w.Product.Price,
-                ProductDescription = w.Product.Description,
-
+                ProductName = w.Product?.Name ?? "Unknown Product",
+                ProductImageUrl = w.Product?.ImageUrl ?? "",
+                ProductPrice = w.Product?.Price ?? 0,
+                ProductDescription = w.Product?.Description ?? "",
+                ProductCategory = w.Product?.Category?.Name ?? "Uncategorized"
             }).ToList();
         }
 
-        public async Task<bool> AddToWishlistAsync(int userId, int productId)
+
+
+        // Services/WishlistService.cs
+        public async Task<WishlistItemDto> AddToWishlistAsync(int userId, int productId)
         {
-            // Check if already in wishlist (optional)
             var existingItems = await _wishlistRepository.GetWishlistByUserIdAsync(userId);
             if (existingItems.Any(w => w.ProductId == productId))
-                return false;  // Already exists
+                return null; // already exists
 
             var newItem = new WishlistItem
             {
@@ -47,8 +50,24 @@ namespace Ecommerce_Backend.Services
 
             await _wishlistRepository.AddWishlistItemAsync(newItem);
             await _wishlistRepository.SaveChangesAsync();
-            return true;
+
+            // Reload the wishlist item with Product included
+            var savedItem = await _wishlistRepository.GetWishlistItemByIdAsync(newItem.Id);
+
+            return new WishlistItemDto
+            {
+                Id = savedItem.Id,
+                ProductId = savedItem.ProductId,
+                ProductName = savedItem.Product?.Name,
+                ProductImageUrl = savedItem.Product?.ImageUrl,
+                ProductPrice = savedItem.Product?.Price ?? 0,
+                ProductDescription = savedItem.Product?.Description,
+                ProductCategory = savedItem.Product?.Category?.Name ?? "Uncategorized"
+            };
         }
+
+
+
 
         public async Task<bool> RemoveFromWishlistAsync(int userId, int wishlistItemId)
         {

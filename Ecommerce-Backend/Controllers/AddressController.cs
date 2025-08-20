@@ -1,97 +1,98 @@
-﻿using Ecommerce_Backend.DTOs;
+﻿using System.Security.Claims;
+using Ecommerce_Backend.DTOs;
 using Ecommerce_Backend.Models;
 using Ecommerce_Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
-using System.Threading.Tasks;
 
-[ApiController]
-[Route("api/address")]
-[Authorize]
-public class AddressController : ControllerBase
+namespace Ecommerce_Backend.Controllers
 {
-    private readonly IAddressService _addressService;
-
-    public AddressController(IAddressService addressService)
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class AddressController : ControllerBase
     {
-        _addressService = addressService;
-    }
+        private readonly IAddressService _service;
 
-    [HttpPost]
-    public async Task<IActionResult> AddAddress([FromBody] AddressDTO dto)
-    {
-        var userId = int.Parse(User.FindFirstValue("UserId"));
-
-        var address = new Address
+        public AddressController(IAddressService service)
         {
-            UserId = userId,
-            FullName = dto.FullName,
-            Email = dto.Email,
-            PhoneNumber = dto.PhoneNumber,
-            AddressLine = dto.AddressLine,
-            Pincode = dto.Pincode
+            _service = service;
+        }
+
+        // Helpers: Entity <-> DTO mapping
+        private static AddressDTO ToDto(Address a) => new AddressDTO
+        {
+            Id = a.Id,
+            FullName = a.FullName,
+            Email = a.Email,
+            PhoneNumber = a.PhoneNumber,
+            AddressLine = a.AddressLine,
+            Pincode = a.Pincode,
+            UserId = a.UserId
         };
 
-        var id = await _addressService.AddAddressAsync(address);
-        return Ok(new { AddressId = id, message = "Address added successfully" });
-    }
+        private static Address FromDto(AddressDTO d) => new Address
+        {
+            Id = d.Id,
+            FullName = d.FullName,
+            Email = d.Email,
+            PhoneNumber = d.PhoneNumber,
+            AddressLine = d.AddressLine,
+            Pincode = d.Pincode,
+            UserId = d.UserId
+        };
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetAddress(int id)
-    {
-        var address = await _addressService.GetAddressByIdAsync(id);
-        if (address == null)
-            return NotFound();
+        // GET: /api/address
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<AddressDTO>>> GetAll()
+        {
+            var addresses = await _service.GetAllAsync();
+            return Ok(addresses.Select(ToDto));
+        }
 
-        var userId = int.Parse(User.FindFirstValue("UserId"));
-        if (address.UserId != userId)
-            return Unauthorized();
+        // GET: /api/address/{id}
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<AddressDTO>> GetById(int id)
+        {
+            var address = await _service.GetByIdAsync(id);
+            if (address == null) return NotFound();
+            return Ok(ToDto(address));
+        }
 
-        return Ok(address);
-    }
+        // POST: /api/address
+        [HttpPost]
+        public async Task<ActionResult<AddressDTO>> Create([FromBody] AddressDTO dto)
+        {
+            // 👇 pull UserId from JWT claim
+            var userIdClaim = User.FindFirstValue("UserId");
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Unauthorized("UserId claim missing in token");
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateAddress(int id, [FromBody] AddressDTO dto)
-    {
-        var userId = int.Parse(User.FindFirstValue("UserId"));
+            dto.UserId = int.Parse(userIdClaim);
 
-        var address = await _addressService.GetAddressByIdAsync(id);
-        if (address == null)
-            return NotFound();
+            var created = await _service.AddAsync(FromDto(dto));
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, ToDto(created));
+        }
 
-        if (address.UserId != userId)
-            return Unauthorized();
+        // PUT: /api/address/{id}
+        [HttpPut("{id:int}")]
+        public async Task<ActionResult<AddressDTO>> Update(int id, [FromBody] AddressDTO dto)
+        {
+            if (id != dto.Id) return BadRequest("Id mismatch");
 
-        address.FullName = dto.FullName;
-        address.Email = dto.Email;
-        address.PhoneNumber = dto.PhoneNumber;
-        address.AddressLine = dto.AddressLine;
-        address.Pincode = dto.Pincode;
+            var updated = await _service.UpdateAsync(FromDto(dto));
+            if (updated == null) return NotFound();
 
-        var updated = await _addressService.UpdateAddressAsync(address);
-        if (!updated)
-            return BadRequest();
+            return Ok(ToDto(updated));
+        }
 
-        return Ok(new { message = "Address updated successfully" });
-    }
-
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteAddress(int id)
-    {
-        var userId = int.Parse(User.FindFirstValue("UserId"));
-
-        var address = await _addressService.GetAddressByIdAsync(id);
-        if (address == null)
-            return NotFound();
-
-        if (address.UserId != userId)
-            return Unauthorized();
-
-        var deleted = await _addressService.DeleteAddressAsync(id);
-        if (!deleted)
-            return BadRequest();
-
-        return Ok(new { message = "Address deleted successfully" });
+        // DELETE: /api/address/{id}
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var result = await _service.DeleteAsync(id);
+            if (!result) return NotFound();
+            return NoContent();
+        }
     }
 }

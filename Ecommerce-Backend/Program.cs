@@ -164,6 +164,26 @@ app.UseHttpsRedirection();
 
 app.UseCors("AllowReact");
 app.UseRouting();
+// Add the debugging middleware here
+app.Use(async (context, next) =>
+{
+    // Log all claims for debugging
+    if (context.User.Identity.IsAuthenticated)
+    {
+        Console.WriteLine("User is authenticated");
+        foreach (var claim in context.User.Claims)
+        {
+            Console.WriteLine($"Claim Type: {claim.Type}, Claim Value: {claim.Value}");
+        }
+    }
+    else
+    {
+        Console.WriteLine("User is NOT authenticated");
+    }
+
+    await next();
+});
+
 app.UseAuthentication();
 app.UseMiddleware<UserValidationMiddleware>();
 app.UseMiddleware<ExceptionMiddleware>();

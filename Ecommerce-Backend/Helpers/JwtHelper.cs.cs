@@ -13,9 +13,10 @@ namespace Ecommerce_Backend.Helpers
         {
             var claims = new[]
             {
+                new Claim("UserId", user.Id.ToString()),
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Email, user.EmailAddress),
-                 new Claim(ClaimTypes.Role, "Admin")
+                 new Claim(ClaimTypes.Role, user.Role)
 
 
             };

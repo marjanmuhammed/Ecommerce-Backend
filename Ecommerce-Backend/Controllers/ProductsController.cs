@@ -7,7 +7,7 @@ using Ecommerce_Backend.Services;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Ecommerce_Backend.Controllers
+namespace EcommerceAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

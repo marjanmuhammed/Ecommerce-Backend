@@ -1,7 +1,6 @@
 ﻿using Ecommerce_Backend.Data;
 using Ecommerce_Backend.Models;
 using Microsoft.EntityFrameworkCore;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -25,7 +24,7 @@ namespace Ecommerce_Backend.Repositories
                 .ToListAsync();
         }
 
-        public async Task<WishlistItem> GetWishlistItemByIdAsync(int id)
+        public async Task<WishlistItem?> GetWishlistItemByIdAsync(int id)
         {
             return await _context.WishlistItems
                 .Include(w => w.Product)
