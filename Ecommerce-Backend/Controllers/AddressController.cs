@@ -19,6 +19,16 @@ namespace Ecommerce_Backend.Controllers
             _service = service;
         }
 
+        // Helper to get current user ID
+        private int GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirstValue("UserId");
+            if (string.IsNullOrEmpty(userIdClaim))
+                throw new UnauthorizedAccessException("UserId claim missing in token");
+
+            return int.Parse(userIdClaim);
+        }
+
         // Helpers: Entity <-> DTO mapping
         private static AddressDTO ToDto(Address a) => new AddressDTO
         {
@@ -42,57 +52,94 @@ namespace Ecommerce_Backend.Controllers
             UserId = d.UserId
         };
 
-        // GET: /api/address
+        // GET: /api/address - Now returns only current user's addresses
         [HttpGet]
         public async Task<ActionResult<IEnumerable<AddressDTO>>> GetAll()
         {
-            var addresses = await _service.GetAllAsync();
-            return Ok(addresses.Select(ToDto));
+            try
+            {
+                var userId = GetCurrentUserId();
+                var addresses = await _service.GetAllByUserIdAsync(userId);
+                return Ok(addresses.Select(ToDto));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
         }
 
-        // GET: /api/address/{id}
+        // GET: /api/address/{id} - Now validates user ownership
         [HttpGet("{id:int}")]
         public async Task<ActionResult<AddressDTO>> GetById(int id)
         {
-            var address = await _service.GetByIdAsync(id);
-            if (address == null) return NotFound();
-            return Ok(ToDto(address));
+            try
+            {
+                var userId = GetCurrentUserId();
+                var address = await _service.GetByIdAndUserIdAsync(id, userId);
+                if (address == null) return NotFound();
+                return Ok(ToDto(address));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
         }
 
         // POST: /api/address
         [HttpPost]
         public async Task<ActionResult<AddressDTO>> Create([FromBody] AddressDTO dto)
         {
-            // 👇 pull UserId from JWT claim
-            var userIdClaim = User.FindFirstValue("UserId");
-            if (string.IsNullOrEmpty(userIdClaim))
-                return Unauthorized("UserId claim missing in token");
+            try
+            {
+                var userId = GetCurrentUserId();
+                dto.UserId = userId;
 
-            dto.UserId = int.Parse(userIdClaim);
-
-            var created = await _service.AddAsync(FromDto(dto));
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, ToDto(created));
+                var created = await _service.AddAsync(FromDto(dto));
+                return CreatedAtAction(nameof(GetById), new { id = created.Id }, ToDto(created));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
         }
 
-        // PUT: /api/address/{id}
+        // PUT: /api/address/{id} - Now validates user ownership
         [HttpPut("{id:int}")]
         public async Task<ActionResult<AddressDTO>> Update(int id, [FromBody] AddressDTO dto)
         {
-            if (id != dto.Id) return BadRequest("Id mismatch");
+            try
+            {
+                if (id != dto.Id) return BadRequest("Id mismatch");
 
-            var updated = await _service.UpdateAsync(FromDto(dto));
-            if (updated == null) return NotFound();
+                var userId = GetCurrentUserId();
+                if (dto.UserId != userId) return Forbid();
 
-            return Ok(ToDto(updated));
+                var updated = await _service.UpdateAsync(FromDto(dto));
+                if (updated == null) return NotFound();
+
+                return Ok(ToDto(updated));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
         }
 
-        // DELETE: /api/address/{id}
+        // DELETE: /api/address/{id} - Now validates user ownership
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var result = await _service.DeleteAsync(id);
-            if (!result) return NotFound();
-            return NoContent();
+            try
+            {
+                var userId = GetCurrentUserId();
+                var result = await _service.DeleteAsync(id, userId);
+                if (!result) return NotFound();
+                return NoContent();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
         }
     }
 }

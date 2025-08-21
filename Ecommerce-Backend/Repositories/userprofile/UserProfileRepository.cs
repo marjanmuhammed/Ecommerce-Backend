@@ -1,7 +1,6 @@
 ﻿using Ecommerce_Backend.Data;
 using Ecommerce_Backend.Models;
 using Ecommerce_Backend.Repositories;
-using Ecommerce_Backend.Repositories.userprofile;
 using Microsoft.EntityFrameworkCore;
 
 public class UserProfileRepository : IUserProfileRepository
@@ -13,7 +12,7 @@ public class UserProfileRepository : IUserProfileRepository
         _context = context;
     }
 
-    public async Task<User?> GetByEmailAsync(string email)
+    public async Task<User?> GetByEmailAddressAsync(string email)
     {
         return await _context.users.FirstOrDefaultAsync(u => u.EmailAddress == email);
     }

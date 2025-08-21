@@ -10,7 +10,7 @@ using Ecommerce_Backend.Repositories;
 using Ecommerce_Backend.Repositories.Admin;
 using Ecommerce_Backend.Services;
 using Ecommerce_Backend.Services.Admin;
-using Ecommerce_Backend.userProfileService;
+using Ecommerce_Backend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -67,7 +67,7 @@ builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<IOrderRepository,OrderRepository>();
 builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
 builder.Services.AddScoped<IAddressRepository, AddressRepository>();
-builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
 
 //admin repo
 builder.Services.AddScoped<IAdminUserRepository, AdminUserRepository>();
