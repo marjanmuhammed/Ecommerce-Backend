@@ -103,7 +103,6 @@ namespace Ecommerce_Backend.Controllers
             }
         }
 
-        // PUT: /api/address/{id} - Now validates user ownership
         [HttpPut("{id:int}")]
         public async Task<ActionResult<AddressDTO>> Update(int id, [FromBody] AddressDTO dto)
         {
@@ -112,7 +111,10 @@ namespace Ecommerce_Backend.Controllers
                 if (id != dto.Id) return BadRequest("Id mismatch");
 
                 var userId = GetCurrentUserId();
-                if (dto.UserId != userId) return Forbid();
+               
+
+                // ✅ enforce correct userId here
+                dto.UserId = userId;
 
                 var updated = await _service.UpdateAsync(FromDto(dto));
                 if (updated == null) return NotFound();
@@ -124,6 +126,7 @@ namespace Ecommerce_Backend.Controllers
                 return Unauthorized(ex.Message);
             }
         }
+
 
         // DELETE: /api/address/{id} - Now validates user ownership
         [HttpDelete("{id:int}")]
