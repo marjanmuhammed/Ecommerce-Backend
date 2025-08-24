@@ -88,6 +88,9 @@ builder.Services.AddScoped<IAddressService, AddressService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 
 
+builder.Services.AddSingleton<RazorpayService>();
+
+
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 //admin services
 
@@ -100,16 +103,17 @@ builder.Services.AddScoped<IAdminCategoryService, AdminCategoryService>();
 
 
 
+// CORS
+
 // CORS policy for React/Vite
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReact", policy =>
-        policy.WithOrigins("http://localhost:5177")
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5177", "http://localhost:3000")
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials());
 });
-
 
 
 
