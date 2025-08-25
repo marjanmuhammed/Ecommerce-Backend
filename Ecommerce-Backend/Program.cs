@@ -86,7 +86,7 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IWishlistService, WishlistService>();
 builder.Services.AddScoped<IAddressService, AddressService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
-
+builder.Services.AddScoped<IOrderService, OrderService>();
 
 builder.Services.AddSingleton<RazorpayService>();
 

@@ -1,9 +1,12 @@
-﻿using Ecommerce_Backend.DTOs;
+﻿using Ecommerce_Backend.Data;
+using Ecommerce_Backend.DTOs;
 using Ecommerce_Backend.Models;
 using Ecommerce_Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -14,37 +17,94 @@ using System.Threading.Tasks;
 public class OrderController : ControllerBase
 {
     private readonly IOrderService _orderService;
+    private readonly ApplicationDbContext _context;
 
-    public OrderController(IOrderService orderService)
+    public OrderController(IOrderService orderService, ApplicationDbContext context)
     {
         _orderService = orderService;
+        _context = context;
     }
 
     [HttpPost]
     public async Task<IActionResult> CreateOrder([FromBody] CreateOrderDto dto)
     {
-        var userId = int.Parse(User.FindFirstValue("UserId"));
-
-        var order = new Order
+        try
         {
-            UserId = userId,
-            AddressId = dto.AddressId,
-            OrderDate = DateTime.UtcNow,
-            Status = "pending",
-            OrderItems = dto.OrderItems.Select(i => new OrderItem
+            var userId = int.Parse(User.FindFirstValue("UserId"));
+
+            if (dto.OrderItems == null || !dto.OrderItems.Any())
+                return BadRequest(new { message = "Order must have at least one item." });
+
+            int addressId;
+
+            if (dto.AddressId > 0)
             {
-                ProductId = i.ProductId,
-                Quantity = i.Quantity
-            }).ToList()
-        };
+                // Use existing address
+                var existingAddress = await _context.Addresses
+                    .FirstOrDefaultAsync(a => a.Id == dto.AddressId && a.UserId == userId);
+                if (existingAddress == null)
+                    return BadRequest(new { message = "Invalid address." });
 
-        var created = await _orderService.CreateOrderAsync(order);
+                addressId = existingAddress.Id;
+            }
+            else
+            {
+                // Create new address
+                if (dto.Address == null)
+                    return BadRequest(new { message = "Address information is required." });
 
-        if (created)
-            return Ok(new { message = "Order placed successfully" });
-        else
-            return BadRequest(new { message = "Failed to place order" });
+                var newAddress = new Address
+                {
+                    UserId = userId,
+                    FullName = dto.Address.FullName,
+                    Email = dto.Address.Email,
+                    PhoneNumber = dto.Address.PhoneNumber,
+                    AddressLine = dto.Address.AddressLine,
+                    Pincode = dto.Address.Pincode
+                };
+
+                _context.Addresses.Add(newAddress);
+                await _context.SaveChangesAsync();
+
+                addressId = newAddress.Id;
+            }
+
+            // Create order items
+            var orderItems = new List<OrderItem>();
+            foreach (var itemDto in dto.OrderItems)
+            {
+                var product = await _context.Products.FindAsync(itemDto.ProductId);
+                if (product == null)
+                    return BadRequest(new { message = $"Product with ID {itemDto.ProductId} not found." });
+
+                orderItems.Add(new OrderItem
+                {
+                    ProductId = product.Id,
+                    Quantity = itemDto.Quantity,
+                    Price = product.Price
+                });
+            }
+
+            var order = new Order
+            {
+                UserId = userId,
+                AddressId = addressId,
+                OrderDate = DateTime.UtcNow,
+                Status = "pending",
+                OrderItems = orderItems
+            };
+
+            var createdOrder = await _orderService.CreateOrderAsync(order);
+
+            return Ok(new { message = "Order placed successfully", orderId = createdOrder.Id });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error placing order: " + ex.ToString());
+            return StatusCode(500, new { message = "An unexpected error occurred." });
+        }
     }
+
 
     [HttpGet]
     public async Task<IActionResult> GetUserOrders()
@@ -54,7 +114,6 @@ public class OrderController : ControllerBase
         return Ok(orders);
     }
 
-    // Add this to get specific order details for logged-in user
     [HttpGet("{orderId}")]
     public async Task<IActionResult> GetOrderById(int orderId)
     {

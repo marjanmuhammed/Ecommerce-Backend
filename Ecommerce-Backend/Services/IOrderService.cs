@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 public interface IOrderService
 {
-    Task<bool> CreateOrderAsync(Order order);
+    Task<OrderResponseDto> CreateOrderAsync(Order order);
     Task<List<OrderResponseDto>> GetOrdersForUserAsync(int userId);
 
     // If needed, vere methodsum add cheyyu

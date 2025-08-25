@@ -1,9 +1,10 @@
-﻿using System.Security.Claims;
-using Ecommerce_Backend.DTOs;
+﻿using Ecommerce_Backend.DTOs;
 using Ecommerce_Backend.Models;
 using Ecommerce_Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace Ecommerce_Backend.Controllers
 {
@@ -129,20 +130,33 @@ namespace Ecommerce_Backend.Controllers
 
 
         // DELETE: /api/address/{id} - Now validates user ownership
+        // DELETE: /api/address/{id} - Validates user ownership
+        // DELETE: /api/address/{id} - Validates user ownership
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
             try
             {
                 var userId = GetCurrentUserId();
-                var result = await _service.DeleteAsync(id, userId);
-                if (!result) return NotFound();
+
+                // Try to delete using service (validates ownership inside service)
+                var deleted = await _service.DeleteAsync(id, userId);
+                if (!deleted)
+                    return BadRequest(new { message = "This address cannot be deleted because it is either not found, not owned by you, or is linked to an order." });
+
                 return NoContent();
             }
             catch (UnauthorizedAccessException ex)
             {
                 return Unauthorized(ex.Message);
             }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
         }
+
+
+
     }
 }

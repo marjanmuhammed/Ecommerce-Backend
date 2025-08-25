@@ -2,6 +2,7 @@
 using Ecommerce_Backend.DTOs;
 using Ecommerce_Backend.Models;
 using Ecommerce_Backend.Repositories;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -41,11 +42,30 @@ namespace Ecommerce_Backend.Services
             return _mapper.Map<List<OrderResponseDto>>(orders);
         }
 
-        public async Task<bool> CreateOrderAsync(Order order)
+        // ✅ Fixed CreateOrderAsync with null checks and proper OrderItems mapping
+        public async Task<OrderResponseDto> CreateOrderAsync(Order order)
         {
-            await _orderRepository.AddOrderAsync(order);
-            await _orderRepository.SaveChangesAsync();
-            return true;
+            try
+            {
+                if (order == null) throw new ArgumentNullException(nameof(order));
+                if (order.OrderItems == null || order.OrderItems.Count == 0)
+                    throw new ArgumentException("Order must have at least one item.");
+
+                order.OrderDate = DateTime.Now;
+                order.Status = "Pending"; // default status
+
+                await _orderRepository.AddOrderAsync(order);
+                await _orderRepository.SaveChangesAsync();
+
+                // return mapped response DTO
+                return _mapper.Map<OrderResponseDto>(order);
+            }
+            catch (Exception ex)
+            {
+                // Log the exact error for debugging
+                Console.WriteLine("Error creating order: " + ex.Message);
+                throw; // rethrow to let controller return 500 with message
+            }
         }
 
         public async Task<bool> UpdateOrderStatusAsync(int orderId, string status)
@@ -64,11 +84,9 @@ namespace Ecommerce_Backend.Services
             var order = await _orderRepository.GetOrderByIdAsync(orderId);
             if (order == null) return false;
 
-            _orderRepository.DeleteOrder(order);  // Need to add this method in repo
+            _orderRepository.DeleteOrder(order);  // Make sure repo method exists
             await _orderRepository.SaveChangesAsync();
             return true;
         }
-
     }
-
 }
