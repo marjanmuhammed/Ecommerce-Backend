@@ -125,6 +125,34 @@ public class OrderController : ControllerBase
 
         return Ok(order);
     }
+    // DELETE api/orders/{orderId}
+    [HttpDelete("{orderId}")]
+    public async Task<IActionResult> DeleteOrder(int orderId)
+    {
+        try
+        {
+            // Get logged-in user's ID from JWT
+            var userId = int.Parse(User.FindFirstValue("UserId"));
+
+            // Optional: fetch order first to check ownership
+            var order = await _orderService.GetOrderByIdAsync(orderId, userId);
+            if (order == null)
+                return NotFound(new { message = "Order not found or access denied." });
+
+            // Call service to delete order
+            var deleted = await _orderService.DeleteOrderAsync(orderId);
+            if (!deleted)
+                return BadRequest(new { message = "Failed to delete order." });
+
+            return Ok(new { message = "Order cancelled successfully." });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error deleting order: " + ex);
+            return StatusCode(500, new { message = "An unexpected error occurred." });
+        }
+    }
+
 }
 
 
