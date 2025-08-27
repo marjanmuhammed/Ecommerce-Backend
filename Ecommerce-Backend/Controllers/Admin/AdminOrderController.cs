@@ -54,6 +54,17 @@ namespace Ecommerce_Backend.Controllers
             else
                 return NotFound(new { message = "Order not found" });
         }
+        ///new//
+        [HttpGet("user/{userId}")]
+        public async Task<IActionResult> GetOrdersByUserId(int userId)
+        { 
+            var orders = await _orderService.GetOrdersForUserAsync(userId);
+            if (orders == null || orders.Count == 0)
+                return NotFound(new { message = "No orders found for this user" });
+
+            return Ok(orders);
+        }
+
 
     }
 }
